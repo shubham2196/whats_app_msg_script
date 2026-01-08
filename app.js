@@ -1,0 +1,113 @@
+const XLSX = require("xlsx");
+const axios = require("axios");
+const path = require("path");
+
+// Load Excel file
+const workbook = XLSX.readFile(path.join(__dirname, "final.xlsx"));
+const sheetName = workbook.SheetNames[0];
+const sheet = workbook.Sheets[sheetName];
+
+// Convert sheet to JSON
+const rows = XLSX.utils.sheet_to_json(sheet);
+
+console.log(`Total rows found: ${rows.length}`);
+
+async function callApiForRow(row, index) {
+  try {
+    // const response = await axios.post(
+    //   "https://example.com/api/users",
+    //   {
+    //     name: row.name,
+    //     mobile: row.mobile,
+    //     email: row.email,
+    //   },
+    //   {
+    //     timeout: 10000,
+    //   }
+    // );
+
+    // console.log(`Row ${index + 1} ✅ Success`, response.data);
+    if (row["Mobile"] && row["Mobile"].toString().length == 13) {
+      await sendSMS(row);
+      // console.log(`Row ${index + 1} ✅ Success`, row["Mobile"]?.substr(1));
+    }
+  } catch (error) {
+    console.error(`Row ${index + 1} ❌ Failed`, error.response?.data || error.message);
+  }
+}
+
+// Sequential processing (SAFE)
+async function processExcel() {
+  for (let i = 0; i < rows.length; i++) {
+    await callApiForRow(rows[i], i);
+  }
+
+  console.log("🎉 Excel processing completed");
+}
+
+processExcel();
+
+async function sendSMS(row) {
+  let data = JSON.stringify({
+    messaging_product: "whatsapp",
+    to: row["Mobile"]?.substr(1),
+    type: "template",
+    template: {
+      name: "accout_update_for_new_users",
+      language: {
+        code: "en",
+      },
+      components: [
+        {
+          type: "header",
+          parameters: [
+            {
+              type: "image",
+              image: {
+                link: "https://learnassets.sk-coders.com/emps/2026/b1.jpeg",
+              },
+            },
+          ],
+        },
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: row["Sr No"],
+            },
+            {
+              type: "text",
+              text: row["Voter Name"],
+            },
+            {
+              type: "text",
+              text: row["EPIC"],
+            },
+            {
+              type: "text",
+              text: row["Booth Address"],
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  let config = {
+    method: "post",
+    maxBodyLength: Infinity,
+    url: "https://graph.facebook.com/v22.0/721104671093303/messages",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer EAAK4ib0AF0sBQf2XeuIAYlSU4vgjlOOtItNLBiW5w25ZCtvvYOTtutHvosLgDkQ4ZCwEPR76fLp6Uvjz8rmaXj4n0LkGmjrAQIkPZCEWa9OkMWoHAQNZBJepuWZAh5IfnIFBZBYBVoMgoM6umIkBtwZAjBQqPbA5esHWo56Q96AZBZA4i36SgC3QnLig4e1h3dAC3L7VOASR4FQBKJh6DOFGzYrc1OEgTuMzRrN9Y",
+    },
+    data: data,
+  };
+  try {
+    const res = await axios.request(config);
+    console.log("MSG SENT On :" + row["Mobile"]);
+  } catch (err) {
+    console.log("Error in sending SMS", err);
+  }
+}
