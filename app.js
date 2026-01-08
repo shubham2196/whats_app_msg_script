@@ -3,7 +3,7 @@ const axios = require("axios");
 const path = require("path");
 
 // Load Excel file
-const workbook = XLSX.readFile(path.join(__dirname, "final.xlsx"));
+const workbook = XLSX.readFile(path.join(__dirname, "marathi_final.xlsx"));
 const sheetName = workbook.SheetNames[0];
 const sheet = workbook.Sheets[sheetName];
 
