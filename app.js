@@ -8,7 +8,8 @@ const sheetName = workbook.SheetNames[0];
 const sheet = workbook.Sheets[sheetName];
 
 // Convert sheet to JSON
-const rows = XLSX.utils.sheet_to_json(sheet);
+let rows = XLSX.utils.sheet_to_json(sheet);
+rows = rows.filter((row) => row["Mobile"] && row["Mobile"].toString().length == 13);
 
 console.log(`Total rows found: ${rows.length}`);
 
@@ -39,13 +40,17 @@ async function callApiForRow(row, index) {
 // Sequential processing (SAFE)
 async function processExcel() {
   for (let i = 0; i < rows.length; i++) {
-    await callApiForRow(rows[i], i);
+    if (rows[i]["Mobile"] && rows[i]["Mobile"].toString().length == 13) {
+      await callApiForRow(rows[i], i);
+      await sleep(800);
+    }
   }
 
   console.log("🎉 Excel processing completed");
 }
 
 processExcel();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function sendSMS(row) {
   let data = JSON.stringify({
@@ -74,19 +79,19 @@ async function sendSMS(row) {
           parameters: [
             {
               type: "text",
-              text: row["Sr No"],
+              text: row["Sr No"]?.toString()?.trim() || "-",
             },
             {
               type: "text",
-              text: row["Voter Name"],
+              text: row["Voter Name"]?.toString()?.trim() || "-",
             },
             {
               type: "text",
-              text: row["EPIC"],
+              text: row["EPIC"]?.toString()?.trim() || "-",
             },
             {
               type: "text",
-              text: row["Booth Address"],
+              text: row["Booth Address"]?.toString()?.trim() || "-",
             },
           ],
         },
