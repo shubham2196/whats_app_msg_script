@@ -1,15 +1,17 @@
 const XLSX = require("xlsx");
 const axios = require("axios");
 const path = require("path");
+const { log } = require("console");
 
 // Load Excel file
-const workbook = XLSX.readFile(path.join(__dirname, "marathi_final.xlsx"));
+const workbook = XLSX.readFile(path.join(__dirname, "MERGED.xlsx"));
 const sheetName = workbook.SheetNames[0];
 const sheet = workbook.Sheets[sheetName];
 
 // Convert sheet to JSON
 let rows = XLSX.utils.sheet_to_json(sheet);
-rows = rows.filter((row) => row["Mobile"] && row["Mobile"].toString().length == 13);
+
+rows = rows.filter((row) => row["Mobile No"] && row["Mobile No"].toString().length == 13);
 
 console.log(`Total rows found: ${rows.length}`);
 
@@ -28,9 +30,9 @@ async function callApiForRow(row, index) {
     // );
 
     // console.log(`Row ${index + 1} ✅ Success`, response.data);
-    if (row["Mobile"] && row["Mobile"].toString().length == 13) {
+    if (row["Mobile No"] && row["Mobile No"].toString().length == 13) {
       await sendSMS(row);
-      // console.log(`Row ${index + 1} ✅ Success`, row["Mobile"]?.substr(1));
+      // console.log(`Row ${index + 1} ✅ Success`, row["Mobile No"]?.substr(1));
     }
   } catch (error) {
     console.error(`Row ${index + 1} ❌ Failed`, error.response?.data || error.message);
@@ -40,7 +42,7 @@ async function callApiForRow(row, index) {
 // Sequential processing (SAFE)
 async function processExcel() {
   for (let i = 0; i < rows.length; i++) {
-    if (rows[i]["Mobile"] && rows[i]["Mobile"].toString().length == 13) {
+    if (rows[i]["Mobile No"] && rows[i]["Mobile No"].toString().length == 13) {
       await callApiForRow(rows[i], i);
       await sleep(800);
     }
@@ -55,7 +57,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function sendSMS(row) {
   let data = JSON.stringify({
     messaging_product: "whatsapp",
-    to: row["Mobile"]?.substr(1),
+    to: row["Mobile No"]?.substr(1),
     type: "template",
     template: {
       name: "accout_update_for_new_users",
@@ -83,15 +85,15 @@ async function sendSMS(row) {
             },
             {
               type: "text",
-              text: row["Voter Name"]?.toString()?.trim() || "-",
+              text: row["Full Name (English)"]?.toString()?.trim() || "-",
             },
             {
               type: "text",
-              text: row["EPIC"]?.toString()?.trim() || "-",
+              text: row["Voter ID (EPIC)"]?.toString()?.trim() || "-",
             },
             {
               type: "text",
-              text: row["Booth Address"]?.toString()?.trim() || "-",
+              text: row["Booth Address (Marathi)"]?.toString()?.trim() || "-",
             },
           ],
         },
@@ -111,7 +113,7 @@ async function sendSMS(row) {
   };
   try {
     const res = await axios.request(config);
-    console.log("MSG SENT On :" + row["Mobile"]);
+    console.log("MSG SENT On :" + row["Mobile No"]);
   } catch (err) {
     console.log("Error in sending SMS", err);
   }
